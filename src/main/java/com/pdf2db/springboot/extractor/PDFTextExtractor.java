@@ -4,16 +4,19 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 public class PDFTextExtractor {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, SQLException {
         PDDocument document = PDDocument.load(new File("C:/Sheet_Piling_Design.pdf"));
         PDFTextStripper pdfStripper = new PDFTextStripper();
         pdfStripper.setStartPage(19);
@@ -58,6 +61,29 @@ public class PDFTextExtractor {
             }
             System.out.println();
         }
+        Properties properties = new Properties();
+        properties.load(new FileInputStream("src/main/resources/application.properties"));
+
+        String url = properties.getProperty("spring.datasource.url");
+        String username = properties.getProperty("spring.datasource.username");
+        String password = properties.getProperty("spring.datasource.password");
+
+        Connection connection = DriverManager.getConnection(url, username, password);
+
+        for (Map.Entry<String, List<String>> entry : headingInformation.entrySet()) {
+            String sqlHeading = entry.getKey();
+            String sqlInformation = String.join("\r\n", entry.getValue());
+
+            String sql = "INSERT INTO headings_information (heading, information) VALUES (?, ?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, sqlHeading);
+            statement.setString(2, sqlInformation);
+            statement.executeUpdate();
+        }
+        connection.close();
+
+
     }
 }
+
 
